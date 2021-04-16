@@ -1,0 +1,15 @@
+{
+    "name": "sunnyflail/file-updater",
+    "description": "A simple class to provide abstraction level over writing to files",
+    "type": "library",
+    "require-dev": {
+        "phpunit/phpunit": "^9.5"
+    },
+    "authors": [
+        {
+            "name": "SunnyFlail",
+            "email": "sunny.flail@gmail.com"
+        }
+    ],
+    "require": {}
+}
