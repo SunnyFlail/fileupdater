@@ -1,6 +1,6 @@
 <?php
 
-namespace SunnyFlail\FileUpdater;
+namespace SunnyFlail\FileEditor;
 
 class FileException extends \Exception
 {}

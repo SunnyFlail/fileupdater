@@ -1,84 +1,117 @@
 <?php
 
-namespace SunnyFlail\FileUpdater;
+namespace SunnyFlail\FileEditor;
 
 use \SplFileObject;
 use \SplTempFileObject;
 
 final class FileEditor
 {
+    public const APPEND_CASCADING = 000;
 
     private string $filePath;
-    private array $overWrittenLines;
-    private array $appendedLines;
+    private array $toOverwrite;
+    private array $toAppend;
 
     public function __construct(string $filePath)
     {
-        if (!is_writable($file)) {
-            throw new FileException(sprintf("'%s' isn't pointing to a writeable file!". $file));
+        if (!is_writable($filePath)) {
+            throw new FileException(sprintf("'%s' isn't pointing to a writeable file!", $filePath));
         }
         $this->filePath = $filePath;
+        $this->toOverwrite = [];
+        $this->toAppend = [];
     }
 
-    public function appendAfter(string|array $text, int $line)
+    public function appendAfter(string|array $text, int $startLine)
     {
-        $text = new Lines($text);
-
-    }
-
-    public function overwrite(string|array $text, int $from)
-    {
-
-    }
-
-    public function save()
-    {
-        $file = new SplFileObject($this->filePath, "w+");
-        $temp = $this->getTempCopy();
-
-        $currentRealLine = 0;
-        while(!$temp->eof())
-        {
-            $currentTempLine = $temp->key();
-            $lineOffset = 0;
-
-            if (isset($this->overWrittenLines[$currentTempLine])) {
-                foreach ($this->overWrittenLines[$currentTempLine] as $overwrite) {
-
-                }
-            }  else {
-                $file->fwrite($temp->current());
-            }
-
-
-            $currentRealLine += $lineOffset;
+        if ($startLine < 1) {
+            throw new FileException(sprintf("Line number must be positive!"));
         }
 
+        //Convert line number to SplFileObject index
+        #$startLine --;
+        $startLine -= 1;
+
+        if (!isset($this->toAppend[$startLine])) {
+            $this->toAppend[$startLine] = new AppendedLines($startLine); 
+        }
+        $this->toAppend[$startLine]->append($text);       
     }
 
-    private function overwriteInFile(array $lines): int
+    public function overwrite(string|array $text, int $startLine, int $endLine)
     {
+        if ($startLine < 1 || $endLine < 1) {
+            throw new FileException(sprintf("Line number must be positive!"));
+        }
 
+        //Convert line number to SplFileObject index
+        $startLine -= 1;
+        $endLine -= 1;
+
+        if (!isset($this->toOverwrite[$startLine])) {
+            $this->toOverwrite[$startLine] = new OverwrittenLines($startLine, $endLine); 
+        }
+        $this->toOverwrite[$startLine]->append($text);      
     }
 
-    private function appendToFile(array $lines, ): int
+    /**
+    * Persists changes to file 
+    */
+    public function save(int $mode = self::APPEND_CASCADING)
     {
+        $temp = $this->getTempCopy();
 
+        $file = new SplFileObject($this->filePath, "w");
+
+        switch ($mode) {
+            case self::APPEND_CASCADING:
+                return $this->cascading($temp, $file);
+            default:
+                throw new FileException(sprintf("Unknown mode code '%s' !", $mode));
+        }
     }
 
+    private function cascading(SplTempFileObject $tempFile, SplFileObject $file)
+    {
+        while (!$tempFile->eof()) {
+
+            // Current line in $tempFile
+            $currentLine = $tempFile->key();
+
+            $offset = 1;
+
+            if (isset($this->toOverwrite[$currentLine])) {
+                $overwrite = &$this->toOverwrite[$currentLine];
+                $file->fwrite($overwrite.PHP_EOL);
+                $offset = $overwrite->getAffectedCount();
+            }  else {
+                $current = $tempFile->current();
+                $file->fwrite($current);
+            }
+
+            if (isset($this->toAppend[$currentLine])) {
+                $append = &$this->toAppend[$currentLine];
+                $file->fwrite($append.PHP_EOL);
+            }
+
+            $tempFile->seek($currentLine + $offset);
+        }
+
+
+        $this->toOverwrite = [];
+        $this->toAppend = [];
+    }
+    
     private function getTempCopy(): SplTempFileObject
     {
         $tempFile = new SplTempFileObject();
         
-        $file = new SplFileObject($this->filePath, "r");
+        $content = file_get_contents($this->filePath);
 
-        while(!$file->eof())
-        {
-            $tempFile->fwrite($file->current());
-            $file->next();
-            $tempFile->next();
-        }
-    
+        $tempFile->fwrite($content);
+        $tempFile->rewind();
+
         return $tempFile;
     }
 

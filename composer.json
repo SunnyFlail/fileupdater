@@ -15,7 +15,7 @@
     },
     "autoload": {
         "psr-4": {
-            "SunnyFlail\\FileUpdater\\" : ""
+            "SunnyFlail\\FileEditor\\" : ""
         },
         "exclude-from-classmap": [
             "tests"

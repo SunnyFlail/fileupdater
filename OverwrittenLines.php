@@ -1,21 +1,25 @@
 <?php
 
-namespace SunnyFlail\FileUpdater;
+namespace SunnyFlail\FileEditor;
 
-class OverwrittenLines extends AbstractLines implements \Iterator
+class OverwrittenLines extends AbstractLines
 {
 
     public function __construct(
-        string|array $lines,
-        int $start,
-        protected int $end
+        int $startLine,
+        protected int $endLine
     ) {
-        parent::__construct($lines, $start);
+        parent::__construct($startLine);
     }
 
-    public function getEndPointer(): int
+    public function getEndLine(): int
     {
-        return $end;
+        return $this->endLine;
+    }
+
+    public function getAffectedCount(): int
+    {
+        return $this->endLine - $this->startLine + 1;
     }
 
 }

@@ -1,11 +1,11 @@
 <?php
 
-namespace SunnyFlail\FileUpdater;
+namespace SunnyFlail\FileEditor;
 
-class AppendedLines implements \Iterator
+class AppendedLines extends AbstractLines
 {
     
-    public function getEndPointer(): int
+    public function getEndLine(): int
     {
         return $this->start + count($this->lines);
     }
